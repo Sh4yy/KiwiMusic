@@ -20,8 +20,8 @@ class Parser(ABC):
         :param hash_method: hashlib hash function
         :return: hex digest of the hash
         """
-        return (hash_method(JSON.dumps(self.json, sort_keys=True))
-                .hexdigest())
+        bin_data = JSON.dumps(self.json, sort_keys=True).encode()
+        return hash_method(bin_data).hexdigest()
 
     @staticmethod
     def helper_remove_at_sign(json):
@@ -106,34 +106,12 @@ class Master(Parser):
         self.title = json.get('title')
         self.notes = json.get('notes')
 
-        self.artists = None
-        if 'artists' in json and json['artists']:
-            if type(json['artists']['artist']) == list:
-                self.artists = json['artists']['artist']
-            else:
-                self.artists = [json['artists']['artist']]
+        self.artists = self.helper_make_list(json, "artists/artist")
+        self.genres = self.helper_make_list(json, "genres/genre")
+        self.styles = self.helper_make_list(json, "styles/style")
 
-        self.genres = None
-        if 'genres' in json and json['genres']:
-            if type(json['genres']['genre']) == list:
-                self.genres = json['genres']['genre']
-            else:
-                self.genres = [json['genres']['genre']]
-
-        self.styles = None
-        if 'styles' in json and json['styles']:
-            if type(json['styles']['style']) == list:
-                self.styles = json['styles']['style']
-            else:
-                self.styles = [json['styles']['style']]
-
-        self.videos = None
-        if 'videos' in json and json['videos']:
-            if type(json['videos']['video']) == list:
-                self.videos = json['videos']['video']
-            else:
-                self.videos = [json['videos']['video']]
-            self.videos = list(map(self.helper_remove_at_sign, self.videos))
+        self.videos = self.helper_make_list(json, "videos/video")
+        self.videos = list(map(self.helper_remove_at_sign, self.videos or []))
 
     def __str__(self):
         return f"<Master(id={self.id}, title={self.title})>"
@@ -145,7 +123,6 @@ class Master(Parser):
         :param file_path: path to xml file
         :return: yields Master items
         """
-
         for data in xmliter(file_path, 'master'):
             yield cls(data)
 
@@ -162,79 +139,24 @@ class Release(Parser):
         self.master_id = json.get('master_id')
         self.status = json.get('@status')
 
-        self.artists = None
-        if 'artists' in json and json['artists']:
-            if type(json['artists']['artist']) == list:
-                self.artists = json['artists']['artist']
-            else:
-                self.artists = [json['artists']['artist']]
+        self.tracklist = self.helper_make_list(json, "tracklist/track")
+        self.companies = self.helper_make_list(json, "companies/company")
+        self.artists = self.helper_make_list(json, "artists/artist")
+        self.genres = self.helper_make_list(json, "genres/genre")
+        self.styles = self.helper_make_list(json, "styles/style")
+        self.extraartists = self.helper_make_list(json, "extraartists/artist")
 
-        self.genres = None
-        if 'genres' in json and json['genres']:
-            if type(json['genres']['genre']) == list:
-                self.genres = json['genres']['genre']
-            else:
-                self.genres = [json['genres']['genre']]
+        self.videos = self.helper_make_list(json, "videos/video")
+        self.videos = list(map(self.helper_remove_at_sign, self.videos or []))
 
-        self.styles = None
-        if 'styles' in json and json['styles']:
-            if type(json['styles']['style']) == list:
-                self.styles = json['styles']['style']
-            else:
-                self.styles = [json['styles']['style']]
+        self.formats = self.helper_make_list(json, "formats/format")
+        self.formats = list(map(self.helper_remove_at_sign, self.formats or []))
 
-        self.videos = None
-        if 'videos' in json and json['videos']:
-            if type(json['videos']['video']) == list:
-                self.videos = json['videos']['video']
-            else:
-                self.videos = [json['videos']['video']]
-            self.videos = list(map(self.helper_remove_at_sign, self.videos))
+        self.identifiers = self.helper_make_list(json, "identifiers/identifier")
+        self.identifiers = list(map(self.helper_remove_at_sign, self.identifiers or []))
 
-        self.extraartists = None
-        if 'extraartists' in json and json['extraartists']:
-            if type(json['extraartists']['artist']) == list:
-                self.extraartists = json['extraartists']['artist']
-            else:
-                self.extraartists = [(json['extraartists']['artist'])]
-
-        self.formats = None
-        if 'formats' in json and json['formats']:
-            if type(json['formats']['format']) == list:
-                self.formats = json['formats']['format']
-            else:
-                self.formats = [json['formats']['format']]
-            self.formats = list(map(self.helper_remove_at_sign, self.formats))
-
-        self.tracklist = None
-        if 'tracklist' in json and json['tracklist']:
-            if type(json['tracklist']['track']) == list:
-                self.tracklist = json['tracklist']['track']
-            else:
-                self.tracklist = [json['tracklist']['track']]
-
-        self.companies = None
-        if 'companies' in json and json['companies']:
-            if type(json['companies']['company']) == list:
-                self.companies = json['companies']['company']
-            else:
-                self.companies = [json['companies']['company']]
-
-        self.identifiers = None
-        if 'identifiers' in json and json['identifiers']:
-            if type(json['identifiers']['identifier']) == list:
-                self.identifiers = json['identifiers']['identifier']
-            else:
-                self.identifiers = [json['identifiers']['identifier']]
-            self.identifiers = list(map(self.helper_remove_at_sign, self.identifiers))
-
-        self.labels = None
-        if 'labels' in json and json['labels']:
-            if type(json['labels']['label']) == list:
-                self.labels = json['labels']['label']
-            else:
-                self.labels = [json['labels']['label']]
-            self.labels = list(map(self.helper_remove_at_sign, self.labels))
+        self.labels = self.helper_make_list(json, "labels/label")
+        self.labels = list(map(self.helper_remove_at_sign, self.labels))
 
     def __str__(self):
         return f"<Release(id={self.id}, title={self.title})>"

@@ -1,8 +1,21 @@
-from parsers.discogs_parser import Artist, Release, Master
+from parsers.discogs_parser import Artist, Release, Master, Parser
 from pprint import pprint
-from models.discogs_models import ArtistDB as ArtistDB
+from models.discogs_models import ArtistDB, ReleaseDB, Document
 from app import init_discogs_db
-from time import time
+
+
+def update_discogs_db(file_path, db, parser, dump_every=100000):
+
+    cache = []
+    for index, item in enumerate(parser.parse(file_path)):
+        cache.append(db.init(item))
+        print(index)
+        if index % dump_every == 0:
+            # db.objects.insert(cache)
+            cache.clear()
+
+    # db.objects.insert(cache)
+
 
 def main():
 
@@ -12,38 +25,9 @@ def main():
     masters_file = "discogs_20190601_masters.xml"
     releases_file = "discogs_20190601_releases.xml"
 
-    # print(ArtistDB.objects)
-    # ArtistDB.objects.delete()
-
-    # cache = []
-    # for index, artist in enumerate(Artist.parse(f'data/{artists_file}')):
-    #     cache.append(ArtistDB.init(artist))
-    #     print(index)
-    #     if index % 100000 == 0:
-    #         ArtistDB.objects.insert(cache)
-    #         cache.clear()
-    #         print("finished inserting")
-    #
-    # ArtistDB.objects.insert(cache)
-
-    data = ArtistDB.objects.search_text('jack').order_by('$text_score')
-
-    st = time()
-    data = ArtistDB.objects.search_text('billie eilish').order_by('$text_score')
-    # for item in data:
-    #     print(item)
-    print((time() - st))
-
-    # for index, release in enumerate(Release.parse(f'data/{releases_file}')):
-    #     pprint(release.__dict__)
-    #     if index == 0:
-    #         break
-    #
-    # for index, master in enumerate(Master.parse(f'data/{masters_file}')):
-    #     pprint(master.__dict__)
-    #     if index == 0:
-    #         break
-
+    ReleaseDB.objects.delete()
+    update_discogs_db(file_path=f"data/{releases_file}",
+                      db=ReleaseDB, parser=Release)
 
 
 if __name__ == '__main__':

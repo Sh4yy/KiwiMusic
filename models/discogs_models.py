@@ -1,20 +1,20 @@
 from mongoengine import *
 
 
-class Members(EmbeddedDocument):
+class Member(EmbeddedDocument):
 
     id = IntField()
     name = StringField()
 
     @classmethod
-    def init(cls, members):
+    def init(cls, member):
         """
-        initialize Members model from Members dict
-        :param members: members dict
-        :return: members model
+        initialize Member model from Member dict
+        :param member: member dict
+        :return: member model
         """
-        return cls(id=int(members['id']),
-                   name=members['name'])
+        return cls(id=int(member['id']),
+                   name=member['name'])
 
 
 class ArtistDB(Document):
@@ -38,7 +38,7 @@ class ArtistDB(Document):
 
     aliases = ListField(StringField())
     name_variations = ListField(StringField())
-    members = EmbeddedDocumentListField(Members)
+    members = EmbeddedDocumentListField(Member)
     groups = ListField(StringField())
     urls = ListField(StringField())
 
@@ -58,7 +58,7 @@ class ArtistDB(Document):
         artist_db.data_quality = artist.data_quality
         artist_db.aliases = artist.aliases
         artist_db.name_variations = artist.namevariations
-        artist_db.members = list(map(Members.init, artist.members or []))
+        artist_db.members = list(map(Member.init, artist.members or []))
         artist_db.groups = artist.groups
         artist_db.urls = artist.urls
 
@@ -66,3 +66,103 @@ class ArtistDB(Document):
 
     def __str__(self):
         return f"<ArtistDB(id={self.id}, name={self.name})>"
+
+
+class EmbeddedArtist(EmbeddedDocument):
+
+    id = IntField()
+    join = StringField()
+    role = StringField()
+
+    @classmethod
+    def init(cls, artist):
+        return cls(id=int(artist['id']),
+                   join=artist['join'],
+                   role=artist['role'])
+
+
+class EmbeddedCompany(EmbeddedDocument):
+
+    entity_type = IntField()
+    entity_type_name = StringField()
+    id = IntField()
+    name = StringField()
+
+    @classmethod
+    def init(cls, company):
+        return cls(entity_type=company['entity_type'],
+                   entity_type_name=company['entity_type_name'],
+                   id=int(company['id']),
+                   name=company['name'])
+
+
+class EmbeddedTrack(EmbeddedDocument):
+
+    title = StringField()
+    position = StringField()
+    duration = StringField()
+
+    @classmethod
+    def init(cls, track):
+        return cls(title=track['title'],
+                   position=track['position'],
+                   duration=track['duration'])
+
+
+class ReleaseDB(Document):
+
+    meta = {
+        'collection': 'releases',
+        'db_alias': 'discogs',
+        'indexes': [
+        ]
+    }
+
+    discogs_id = IntField(unique=True)
+    country = StringField()
+    data_quality = StringField()
+    title = StringField()
+    notes = StringField()
+    master_id = IntField()
+    status = StringField()
+
+    artists = EmbeddedDocumentListField(EmbeddedArtist)
+    genres = ListField(StringField())
+    styles = ListField(StringField())
+    companies = EmbeddedDocumentListField(EmbeddedCompany)
+    extra_artists = EmbeddedDocumentListField(EmbeddedArtist)
+    track_list = EmbeddedDocumentListField(EmbeddedTrack)
+
+    @classmethod
+    def init(cls, release):
+        """
+        initialize ReleaseDB Model from Release Parser
+        :param release: release instance (discogs_parser)
+        :return: ReleaseDB
+        """
+
+        release_db = cls()
+        release_db.discogs_id = int(release.id)
+        release_db.country = release.country
+        release_db.data_quality = release.data_quality
+        release_db.title = release.title
+        release_db.notes = release.notes
+        release_db.status = release.status
+        release_db.genres = release.genres
+        release_db.styles = release.styles
+
+        master_id = int(release.master_id) if release.master_id else None
+        release_db.master_id = master_id
+
+        release_db.artists = list(map(EmbeddedArtist.init, release.artists or []))
+        release_db.companies = list(map(EmbeddedCompany.init, release.companies or []))
+        release_db.extra_artists = list(map(EmbeddedArtist.init, release.extraartists or []))
+        release_db.track_list = list(map(EmbeddedTrack.init, release.tracklist or []))
+
+        return release_db
+
+    def __str__(self):
+        return f"<ReleaseDB(id={self.discogs_id}, title={self.title})>"
+
+
+
