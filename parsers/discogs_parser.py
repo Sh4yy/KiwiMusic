@@ -1,18 +1,55 @@
 from xmlr import xmliter
 from pprint import pprint
 from abc import ABC, abstractmethod
+import json as JSON
+import hashlib
 
 
 class Parser(ABC):
 
+    def __init__(self, json):
+        """
+        default initializer
+        :param json: json data
+        """
+        self.json = json
+
+    def hash(self, hash_method=hashlib.md5):
+        """
+        create a hash of the provided data
+        :param hash_method: hashlib hash function
+        :return: hex digest of the hash
+        """
+        return (hash_method(JSON.dumps(self.json, sort_keys=True))
+                .hexdigest())
+
     @staticmethod
     def helper_remove_at_sign(json):
+        """
+        remove @ from keys in json
+        :param json: json data
+        :return: dict
+        """
         resp = {}
         for key, value in json.items():
             if key.startswith('@'):
                 key = key[1:]
             resp[key] = value
         return resp
+
+    @staticmethod
+    def helper_make_list(json, path):
+
+        dirs = path.split('/')
+        data = json
+        for cur_dir in dirs:
+            if not data: return None
+            if cur_dir in data:
+                data = data[cur_dir]
+            else:
+                return None
+
+        return data if type(data) == list else [data]
 
     @classmethod
     @abstractmethod
@@ -23,36 +60,26 @@ class Parser(ABC):
 class Artist(Parser):
 
     def __init__(self, json):
+        Parser.__init__(self, json)
         self.id = json.get('id')
         self.name = json.get('name')
         self.profile = json.get('profile')
         self.realname = json.get('realname')
         self.data_quality = json.get('data_quality')
 
-        self.aliases = None
-        if "aliases" in json:
-            self.aliases = json['aliases']['name']
+        self.aliases = self.helper_make_list(json, "aliases/name")
+        self.namevariations = self.helper_make_list(json, "namevariations/name")
+        self.members = self.helper_make_list(json, 'members/name')
+        self.groups = self.helper_make_list(json, "groups/name")
+        self.urls = self.helper_make_list(json, "urls/url")
 
-        self.namevariations = None
-        if 'namevariations' in json:
-            self.namevariations = json['namevariations']['name']
+        while self.urls and None in self.urls:
+            self.urls.remove(None)
 
-        self.members = None
         if 'members' in json and json['members']:
             self.members = []
             for id, member in zip(json['members']['id'], json['members']['name']):
                 self.members.append({'name': member, 'id': id})
-
-        self.groups = None
-        if 'groups' in json and json['groups']:
-            self.groups = json['groups']['name']
-
-        self.urls = None
-        if 'urls' in json and json['urls']:
-            if type(json['urls']['url']) == list:
-                self.urls = json['urls']['url']
-            else:
-                self.urls = [json['urls']['url']]
 
     def __str__(self):
         return f"<Artist(id={self.id}, name={self.name})>"
@@ -64,7 +91,6 @@ class Artist(Parser):
         :param file_path: path to xml file
         :return: yields artist items
         """
-
         for data in xmliter(file_path, 'artist'):
             yield cls(data)
 
@@ -72,6 +98,7 @@ class Artist(Parser):
 class Master(Parser):
 
     def __init__(self, json):
+        Parser.__init__(self, json)
         self.id = json.get('@id')
         self.year = json.get('year')
         self.data_quality = json.get('data_quality')
@@ -126,6 +153,7 @@ class Master(Parser):
 class Release(Parser):
 
     def __init__(self, json):
+        Parser.__init__(self, json)
         self.id = json.get('@id')
         self.country = json.get('country')
         self.data_quality = json.get('data_quality')
