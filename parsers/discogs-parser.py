@@ -1,102 +1,198 @@
-import xml.etree.ElementTree as ET
+from xmlr import xmliter
 from pprint import pprint
 
-def xml2py(node):
-    """
-    convert xml to python object
-    node: xml.etree.ElementTree object
-    """
-
-    name = node.tag
-
-    pytype = type(name, (object, ), {})
-    pyobj = pytype()
-
-    for attr in node.attrib.keys():
-        setattr(pyobj, attr, node.get(attr))
-
-    if node.text and node.text != '' and node.text != ' ' and node.text != '\n':
-        setattr(pyobj, 'text', node.text)
-
-    for cn in node:
-        if not hasattr(pyobj, cn.tag):
-            setattr(pyobj, cn.tag, [])
-        getattr(pyobj, cn.tag).append(xml2py(cn))
-
-    return pyobj
-
-tree = ET.parse('Small_artists.xml')
-root = tree.getroot()
-
-"""
-{'aliases': [<__main__.aliases object at 0x101787390>],
- 'data_quality': [<__main__.data_quality object at 0x1017871d0>],
- 'id': [<__main__.id object at 0x1017870b8>],
- 'name': [<__main__.name object at 0x1017870f0>],
- 'namevariations': [<__main__.namevariations object at 0x101787240>],
- 'profile': [<__main__.profile object at 0x101787160>],
- 'realname': [<__main__.realname object at 0x101787128>],
- 'text': '\n\t\t'}
-{'aliases': [<__main__.aliases object at 0x1017876d8>],
- 'data_quality': [<__main__.data_quality object at 0x101787668>],
- 'id': [<__main__.id object at 0x101787470>],
- 'members': [<__main__.members object at 0x101787828>],
- 'name': [<__main__.name object at 0x101787588>],
- 'profile': [<__main__.profile object at 0x1017875f8>],
- 'text': '\n\t\t'}
-[Finished in 0.1s]
-"""
-
-"""
-<artist>
-		<id>19</id>
-		<name>Sound Associates</name>
-		<profile></profile>
-		<data_quality>Needs Vote</data_quality>
-		<aliases>
-			<name id="3653">Daz Saund &amp; Ben Tisdall</name>
-			<name id="7507">Housewerk</name>
-		</aliases>
-		<members>
-			<id>6482</id>
-			<name id="6482">Ben Tisdall</name>
-			<id>15867</id>
-			<name id="15867">Daz Saund</name>
-		</members>
-	</artist>
-"""
 
 class Artist:
 
-	# id = int()
-	# name = str()
-	# profile = str()
-	# data_quality = str()
-	# aliases = [
-	# 	{
-	# 	"name": str(),
-	# 	"id"; int()
-	# 	}
-	# ]
-	# members = [
-	# 	{
-	# 	"name": str(),
-	# 	"id": str()
-	# 	}
-	# ]
+	def __init__(self, json):
+		self.id = json.get('id')
+		self.name = json.get('name')
+		self.profile = json.get('profile')
+		self.realname = json.get('realname')
+		self.data_quality = json.get('data_quality')
 
-	def __init__(self):
-		pass
+		self.aliases = None
+		if "aliases" in json:
+			self.aliases = json['aliases']['name']
 
-for child in root:
-	artist = xml2py(child)
-	
-	id = artist.id[0].text
-	print(id)
+		self.namevariations = None
+		if 'namevariations' in json:
+			self.namevariations = json['namevariations']['name']
+
+		self.members = None
+		if 'members' in json and json['members']:
+			self.members = []
+			for id, member in zip(json['members']['id'], json['members']['name']):
+				self.members.append({'name': member, 'id': id})
+
+		self.groups = None
+		if 'groups' in json and json['groups']:
+			self.groups = json['groups']['name']
+
+		self.urls = None
+		if 'urls' in json and json['urls']:
+			self.urls = json['urls']['url']
+
+	def __str__(self):
+		return f"<Artist(id={self.id}, name={self.name})>"
+
+	@classmethod
+	def parse(cls, file_path):
+		"""
+		generator parser
+		:param file_path: path to xml file
+		:return: yields artist items
+		"""
+
+		for data in xmliter(file_path, 'artist'):
+			yield cls(data)
+
+class Master:
+
+	def __init__(self, json):
+		self.id = json.get('@id')
+		self.year = json.get('year')
+		self.data_quality = json.get('data_quality')
+		self.main_release = json.get('main_release')
+		self.title = json.get('title')
+		self.notes = json.get('notes')
+
+		self.artists = None
+		if 'artists' in json and json['artists']:
+			if type(json['artists']['artist']) == list:
+				self.artists = json['artists']['artist']
+			else:
+				self.artists = [json['artists']['artist']]
+
+		self.genres = None
+		if 'genres' in json and json['genres']:
+			if type(json['genres']['genre']) == list:
+				self.genres = json['genres']['genre']
+			else:
+				self.genres = [json['genres']['genre']]
+
+		self.styles = None
+		if 'styles' in json and json['styles']:
+			if type(json['styles']['style']) == list:
+				self.styles = json['styles']['style']
+			else:
+				self.styles = [json['styles']['style']] 
+
+		self.videos = None
+		if 'videos' in json and json['videos']:
+			if type(json['videos']['video']) == list:
+				self.videos = json['videos']['video']
+			else:
+				self.videos = [json['videos']['video']]
+
+	def __str__(self):
+		return f"<Master(id={self.id}, title={self.title})>"
+
+	@classmethod
+	def parse(cls, file_path):
+		"""
+		generator parser
+		:param file_path: path to xml file
+		:return: yields Master items
+		"""
+
+		for data in xmliter(file_path, 'master'):
+			yield cls(data)
 
 
+class Release:
 
-# for child in root:
-# 	for child_2 in child:
-# 		print(child_2)
+	def __init__(self, json):
+		self.id = json.get('@id')
+		self.country = json.get('country')
+		self.data_quality = json.get('data_quality')
+		self.title = json.get('title')
+		self.notes = json.get('notes')
+		self.master_id = json.get('master_id')
+		self.status = json.get('@status')
+
+		self.artists = None
+		if 'artists' in json and json['artists']:
+			if type(json['artists']['artist']) == list:
+				self.artists = json['artists']['artist']
+			else:
+				self.artists = [json['artists']['artist']]
+
+		self.genres = None
+		if 'genres' in json and json['genres']:
+			if type(json['genres']['genre']) == list:
+				self.genres = json['genres']['genre']
+			else:
+				self.genres = [json['genres']['genre']]
+
+		self.styles = None
+		if 'styles' in json and json['styles']:
+			if type(json['styles']['style']) == list:
+				self.styles = json['styles']['style']
+			else:
+				self.styles = [json['styles']['style']]
+
+		self.videos = None
+		if 'videos' in json and json['videos']:
+			if type(json['videos']['video']) == list:
+				self.videos = json['videos']['video']
+			else:
+				self.videos = [json['videos']['video']]
+
+		self.extraartists = None
+		if 'extraartists' in json and json['extraartists']:
+			if type(json['extraartists']['artist']) == list:
+				self.extraartists = json['extraartists']['artist']
+			else:
+				self.extraartists = [(json['extraartists']['artist'])]
+
+		self.formats = None
+		if 'formats' in json and json['formats']:
+			if type(json['formats']['format']) == list:
+				self.formats = json['formats']['format']
+			else:
+				self.formats = [json['formats']['format']]
+
+		self.tracklist = None
+		if 'tracklist' in json and json['tracklist']:
+			if type(json['tracklist']['track']) == list:
+				self.tracklist = json['tracklist']['track']
+			else:
+				self.tracklist = [json['tracklist']['track']]
+
+		self.companies = None
+		if 'companies' in json and json['companies']:
+			if type(json['companies']['company']) == list:
+				self.companies = json['companies']['company']
+			else:
+				self.companies = [json['companies']['company']]
+
+		self.identifiers = None
+		if 'identifiers' in json and json['identifiers']:
+			if type(json['identifiers']['identifier']) == list:
+				self.identifiers = json['identifiers']['identifier']
+			else:
+				self.identifiers = [json['identifiers']['identifier']]
+
+		self.labels = None
+		if 'labels' in json and json['labels']:
+			if type(json['labels']['label']) == list:
+				self.labels = json['labels']['label']
+			else:
+				self.labels = [json['labels']['label']]
+
+ 
+	def __str__(self):
+		return f"<Release(id={self.id}, title={self.title})>"
+
+	@classmethod
+	def parse(cls, file_path):
+		"""
+		generator parser
+		:param file_path: path to xml file
+		:return: yields Release items
+		"""
+
+		for data in xmliter(file_path, 'release'):
+			yield cls(data)
 
