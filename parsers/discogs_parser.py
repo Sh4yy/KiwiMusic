@@ -49,7 +49,10 @@ class Artist(Parser):
 
         self.urls = None
         if 'urls' in json and json['urls']:
-            self.urls = json['urls']['url']
+            if type(json['urls']['url']) == list:
+                self.urls = json['urls']['url']
+            else:
+                self.urls = [json['urls']['url']]
 
     def __str__(self):
         return f"<Artist(id={self.id}, name={self.name})>"
