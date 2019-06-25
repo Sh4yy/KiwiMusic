@@ -71,12 +71,14 @@ class ArtistDB(Document):
 class EmbeddedArtist(EmbeddedDocument):
 
     id = IntField()
+    name = StringField()
     join = StringField()
     role = StringField()
 
     @classmethod
     def init(cls, artist):
         return cls(id=int(artist['id']),
+                   name=artist['name'],
                    join=artist['join'],
                    role=artist['role'])
 

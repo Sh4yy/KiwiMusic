@@ -11,10 +11,10 @@ def update_discogs_db(file_path, db, parser, dump_every=100000):
         cache.append(db.init(item))
         print(index)
         if index % dump_every == 0:
-            # db.objects.insert(cache)
+            db.objects.insert(cache)
             cache.clear()
 
-    # db.objects.insert(cache)
+    db.objects.insert(cache)
 
 
 def main():
