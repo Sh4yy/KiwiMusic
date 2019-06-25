@@ -20,6 +20,7 @@ def update_discogs_db(file_path, db, parser, dump_every=100000):
 def main():
 
     init_discogs_db()
+    print("connected")
 
     artists_file = "discogs_20190601_artists.xml"
     masters_file = "discogs_20190601_masters.xml"

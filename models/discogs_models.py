@@ -98,6 +98,7 @@ class EmbeddedArtist(EmbeddedDocument):
             "role": self.role
         }
 
+
 class EmbeddedCompany(EmbeddedDocument):
 
     entity_type = IntField()
@@ -119,6 +120,7 @@ class EmbeddedCompany(EmbeddedDocument):
             "id": self.id,
             "name": self.name
         }
+
 
 class EmbeddedTrack(EmbeddedDocument):
 
@@ -145,6 +147,10 @@ class ReleaseDB(Document):
         'collection': 'releases',
         'db_alias': 'discogs',
         'indexes': [
+            {'fields': ['$title', "$track_list.title"],
+             'default_language': 'english',
+             'weights': {'title': 10, 'track_list.title': 10}
+             }
         ]
     }
 
@@ -198,7 +204,7 @@ class ReleaseDB(Document):
             "title": self.title,
             "artists": list(map(lambda x: x.make_json(), self.artists)),
             "genres": self.genres,
-            "track_list": list(map(lambda x: x.make_json(), self.track_list))
+            "track_list": list(map(lambda x: x.make_json(), self.track_list)),
             "styles": self.styles
         }
 
