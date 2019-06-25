@@ -2,19 +2,43 @@ from parsers.discogs_parser import Artist, Release, Master, Parser
 from pprint import pprint
 from models.discogs_models import ArtistDB, ReleaseDB, Document
 from app import init_discogs_db
+from threading import Thread, Lock
 
 
-def update_discogs_db(file_path, db, parser, dump_every=100000):
+def update_discogs_db(file_path, db, parser):
 
     cache = []
-    for index, item in enumerate(parser.parse(file_path)):
-        cache.append(db.init(item))
-        print(index)
-        if index % dump_every == 0:
-            db.objects.insert(cache)
-            cache.clear()
+    lock = Lock()
+    work = True
 
-    db.objects.insert(cache)
+    def parse_help():
+        global work
+        for index, item in enumerate(parser.parse(file_path)):
+            if index % 200000 == 0:
+                print(index)
+            with lock:
+                try:
+                    cache.append(db.init(item))
+                except Exception as e:
+                    print(e)
+        work = False
+
+    def insert_help():
+        while work or len(cache) > 0:
+            if len(cache) > 0:
+                with lock:
+                    print('adding')
+                    try:
+                        db.objects.insert(cache)
+                    except Exception as e:
+                        print(e)
+                    cache.clear()
+        print('done')
+
+    thread = Thread(target=parse_help)
+    thread.start()
+    insert_help()
+    thread.join()
 
 
 def main():

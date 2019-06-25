@@ -156,7 +156,7 @@ class Release(Parser):
         self.identifiers = list(map(self.helper_remove_at_sign, self.identifiers or []))
 
         self.labels = self.helper_make_list(json, "labels/label")
-        self.labels = list(map(self.helper_remove_at_sign, self.labels))
+        self.labels = list(map(self.helper_remove_at_sign, self.labels or []))
 
     def __str__(self):
         return f"<Release(id={self.id}, title={self.title})>"
