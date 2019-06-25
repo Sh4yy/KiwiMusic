@@ -64,6 +64,15 @@ class ArtistDB(Document):
 
         return artist_db
 
+    def make_json(self):
+        return {
+            "gid": str(self._id),
+            "name": self.name,
+            "profile": self.profile,
+            "groups": self.groups,
+            "real_name": self.real_name
+        }
+
     def __str__(self):
         return f"<ArtistDB(id={self.id}, name={self.name})>"
 
@@ -82,6 +91,12 @@ class EmbeddedArtist(EmbeddedDocument):
                    join=artist['join'],
                    role=artist['role'])
 
+    def make_json(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "role": self.role
+        }
 
 class EmbeddedCompany(EmbeddedDocument):
 
@@ -97,6 +112,13 @@ class EmbeddedCompany(EmbeddedDocument):
                    id=int(company['id']),
                    name=company['name'])
 
+    def make_json(self):
+        return {
+            "entity_type": self.entity_type,
+            "entity_type_name": self.entity_type_name,
+            "id": self.id,
+            "name": self.name
+        }
 
 class EmbeddedTrack(EmbeddedDocument):
 
@@ -109,6 +131,12 @@ class EmbeddedTrack(EmbeddedDocument):
         return cls(title=track['title'],
                    position=track['position'],
                    duration=track['duration'])
+
+    def make_json(self):
+        return {
+            "title": self.title,
+            "duration": self.duration
+        }
 
 
 class ReleaseDB(Document):
@@ -162,6 +190,17 @@ class ReleaseDB(Document):
         release_db.track_list = list(map(EmbeddedTrack.init, release.tracklist or []))
 
         return release_db
+
+    def make_json(self):
+        return {
+            "gid": str(self._id),
+            "country": self.country,
+            "title": self.title,
+            "artists": list(map(lambda x: x.make_json(), self.artists)),
+            "genres": self.genres,
+            "track_list": list(map(lambda x: x.make_json(), self.track_list))
+            "styles": self.styles
+        }
 
     def __str__(self):
         return f"<ReleaseDB(id={self.discogs_id}, title={self.title})>"
